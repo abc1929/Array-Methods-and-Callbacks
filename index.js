@@ -22,6 +22,7 @@ let winner;
 if(finalmatch2014["Home Team Goals"] !== finalmatch2014["Away Team Goals"]){
     winner = finalmatch2014["Home Team Goals"] > finalmatch2014["Away Team Goals"] ? finalmatch2014["Home Team Name"] : finalmatch2014["Away Team Name"]
 } else { 
+    // we account for penalty kicks and stuff when finals are tied in regulation
     winner = finalmatch2014["Win conditions"].split(" ")[0]
 }
 console.log(winner) 
@@ -35,7 +36,6 @@ hint - you should be looking at the stage key inside of the objects
 */
 
 function getFinals(data) {
-    // I assume this is what the requirement wants
     return data.filter(e => e["Stage"]==="Final");
 }
 
@@ -121,35 +121,106 @@ Create a function called `getCountryWins` that takes the parameters `data` and `
 Hint: Investigate your data to find "team initials"!
 Hint: use `.reduce` */
 
-function getCountryWins(/* code here */) {
+function getCountryWins(data,initials) {
+    let finals = getFinals(data);
+    let winners = getWinners(data,getFinals);
 
-    /* code here */
+    
+    return finals.reduce((a,b,i) => function(e){
+        // we want to accumulate 1 if the given initial exists and the corresponding full name matches the winner name
+        if(e["Home Team Initials"]===initials && winners[i]===e["Home Team Name"]){
+            return 1;
+        }
+        if(e["Away Team Initials"]===initials && winners[i]===e["Away Team Name"]){
+            return 1;
+        }
+        return 0;
+    }(b) + a 
+    ,0)
 
 }
+
+console.log(getCountryWins(fifaData,"ITA")) //4
+console.log(getCountryWins(fifaData,"BRA")) //5
+console.log(getCountryWins(fifaData,"ENG")) //1
+console.log(getCountryWins(fifaData,"USA")) //0
 
 
 
 /* 💪💪💪💪💪 Stretch 2: 💪💪💪💪💪 
 Write a function called getGoals() that accepts a parameter `data` and returns the team with the most goals score per appearance (average goals for) in the World Cup finals */
 
-function getGoals(/* code here */) {
 
-    /* code here */
+
+function getGoals(data) {
+
+    let finals = getFinals(data);
+    let finalscore = {}; // we store preprocessed results as a pair of "Name": [totalgoal, total appearances]
+
+    // loop through and accumulate to finalscore
+    finals.forEach(e => {
+        finalscore[e["Home Team Name"]] = finalscore[e["Home Team Name"]] === undefined ? [e["Home Team Goals"],1] : [finalscore[e["Home Team Name"]][0]+e["Home Team Goals"], finalscore[e["Home Team Name"]][1]+1]
+        finalscore[e["Away Team Name"]] = finalscore[e["Away Team Name"]] === undefined ? [e["Away Team Goals"],1] : [finalscore[e["Away Team Name"]][0]+e["Away Team Goals"], finalscore[e["Away Team Name"]][1]+1]
+    });
+    let avg = [];
+    // calculate avgs for each final entrants
+    for(let i in finalscore){
+        avg.push([i,finalscore[i][0]/finalscore[i][1]])
+    }
+    // return the highest
+    return avg.sort((a,b) => b[1]-a[1])[0]
 
 }
+console.log(getGoals(fifaData)) // ["Uruguay", 4] Uruguay with 4 avg goals per final appearance
 
 
 /* 💪💪💪💪💪 Stretch 3: 💪💪💪💪💪
 Write a function called badDefense() that accepts a parameter `data` and calculates the team with the most goals scored against them per appearance (average goals against) in the World Cup finals */
 
-function badDefense(/* code here */) {
 
-    /* code here */
+// This is exactly the previous problem with accumulation logic flipped.
+function badDefense(data) {
+    let finals = getFinals(data);
+    let finalscoreagainst = {};
+    finals.forEach(e => {
+        finalscoreagainst[e["Home Team Name"]] = finalscoreagainst[e["Home Team Name"]] === undefined ? [e["Away Team Goals"],1] : [finalscoreagainst[e["Home Team Name"]][0]+e["Away Team Goals"], finalscoreagainst[e["Home Team Name"]][1]+1]
+        finalscoreagainst[e["Away Team Name"]] = finalscoreagainst[e["Away Team Name"]] === undefined ? [e["Home Team Goals"],1] : [finalscoreagainst[e["Away Team Name"]][0]+e["Home Team Goals"], finalscoreagainst[e["Away Team Name"]][1]+1]
+    });
+    let avg = [];
+    for(let i in finalscoreagainst){
+        avg.push([i,finalscoreagainst[i][0]/finalscoreagainst[i][1]])
+    }
+    return avg.sort((a,b) => b[1]-a[1])[0]
+}
+console.log(badDefense(fifaData))
+
+/* If you still have time, use the space below to work on any stretch goals of your chosing as listed in the README file. */
+
+// Account for ties in your 'finals' data set
+// > it's already done above
+
+// Create a function that takes country initials as a parameter and returns their total number of World Cup appearances.
+function getCountryAppearances(data,initials) {
+    let years = [... new Set(data.map(e => e["Year"]))];
+    // 1950 is a special case, so we don't use the previous get years for finals.
+    // console.log(years)
+    
+    let appearances = 0;
+    for(let i of years){
+        let appear = data.filter(e => e["Year"]==i).filter(e => (e["Home Team Initials"] === initials || e["Away Team Initials"]===initials))
+        if(appear.length>0){
+            appearances++;
+            // console.log(i)
+        }
+    }
+    return appearances;
 
 }
 
+console.log(getCountryAppearances(fifaData,"BRA")) // brazil => returns 20
+console.log(getCountryAppearances(fifaData,"PRK")) // north korea => returns 2
 
-/* If you still have time, use the space below to work on any stretch goals of your chosing as listed in the README file. */
+// console.log(getFinals(fifaData))
 
 
 /* 🛑🛑🛑🛑🛑 Please do not modify anything below this line 🛑🛑🛑🛑🛑 */
